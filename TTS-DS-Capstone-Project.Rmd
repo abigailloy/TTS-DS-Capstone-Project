@@ -2,35 +2,62 @@
 title: "Iris Project"
 author: "Abigail Loy"
 date: "October 14, 2021"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Machine Learning: Iris Dataset Classification!
-Steps:
-1. Bring the dataset into the R environment.
-2. Split the data into Training and Testing sets.
-3. Explore the  data.
-4. Fit the training and testing sets to various models.
-5. Summarize!
+**Machine Learning: *Iris Dataset Classification!***
 
-Packages Needed:
-tidyverse
-caret
+*Steps:*
 
--Bringing in the Iris Dataset and Taking a Look!-
-  I'll be loading the dataset from directly within R, though you can also load it from an external source and it's most likely a good idea for you to do both.
+1.  Bringing the dataset into the R environment.
+
+2.  Splitting the data into Training and Testing sets.
+
+3.  Exploratory Data Analysis!
+
+4.  Fitting the training and testing sets to various models.
+
+*Packages Needed:*
+
+-   tidyverse
+
+-   caret
+
+-   rpart
+
+-   rpart.plot
+
+-   randomForest
+
+-   gbm
+
+-   MASS
+
+**-Bringing in the Iris Dataset and Taking a Look!-**
+
+I'll be loading the dataset from directly within R, though you can also load it from an external source and it's most likely a good idea for you to do both.
+
 ```{r}
+# Packages!
 library(tidyverse)
 library(caret)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(gbm)
+library(MASS)
 
 #brings data into environment from within R
 data(iris)
 
-#gets help on dataset
+#help for dataset
 help(iris)
 
 #renames dataset
@@ -45,11 +72,14 @@ View(iris_dataset)
 head(iris)
 ```
 
--Train - Test - Split!-
-  Here we'll be splitting the data into a training and testing set.
-  The training data set is to help us understand the data, select the appropriate model and determine model parameters. For this classification problem, we'll train the model using the classfication error rate, which is the percentage of incorrectly/correctly classified instances.
-  The testing set is for testing our model's preformance when classifying new data. The model performance(error rate) on this new data will be a more realistic estimate of the model fit in the real world.
-  
+**-Train - Test - Split!-**
+
+Here we'll be splitting the data into a training and testing set.
+
+The training dataset is to help us understand the data, select the appropriate model and determine model parameters. For this classification problem, we'll train the model using the classification error rate, which is the percentage of incorrectly/correctly classified instances.
+
+The testing set is for testing our model's performance when classifying new data. The model performance (error rate) on this new data will be a more realistic estimate of the models performance in the real world.
+
 ```{r}
 #creates a partition (80% training, 20% testing)
 index <- createDataPartition(iris_dataset$Species, p=0.80, list=FALSE)
@@ -61,8 +91,10 @@ testset <- iris_dataset[-index,]
 trainset <- iris_dataset[index,]
 ```
 
--Exploratory Data Analysis-
-  Exploring the data is to get us more familiar with the dataset and making sure we understand what the rows and columns are and what the dataset is supposed to be illustrating and how we can use it to build visuals.
+**-Exploratory Data Analysis-**
+
+Exploring the data is to get us more familiar with the dataset and making sure we understand what the rows and columns are and what the dataset is supposed to be illustrating and how we can use it to build visuals.
+
 ```{r}
 #gets dimensions of the dataset
 dim(trainset)
@@ -83,8 +115,10 @@ summary(trainset)
 levels(trainset$Species)
 ```
 
--Visualizing!-
-  Now we need to visualize the data! Visualizing the data helps with understanding it's various attributes and how they relate to each other. For our plots, we're going to be making some histograms, box plots, and scatter plots. We'll start with simplistic plots and then add some flare. lastly, we'll try faceting, making multiple charts in one plot.
+**-Visualizing!-**
+
+Now we need to visualize the data! Visualizing the data helps with understanding it's various attributes and how they relate to each other. For our plots, we're going to be making some histograms, box plots, and scatter plots. We'll start with simplistic plots and then add some flare! Lastly, we'll try faceting, Which is making multiple charts in one plot.
+
 ```{r}
 #histogram: frequency of Sepal Width
 hist(trainset$Sepal.Width)
@@ -97,7 +131,9 @@ par(mfrow=c(1,4))
   boxplot(trainset[,i], main=names(trainset)[i])
 }
 ```
-  Now we'll be using the ggplot package to plot some more complicated and percise graphs and with colors!
+
+Now we'll be using the ggplot package to plot some more complicated and precise graphs and with colors!
+
 ```{r}
 #creates base scatter plot
 base <- ggplot(data=trainset, aes(x = Petal.Length, y = Petal.Width))
@@ -121,7 +157,7 @@ box <- ggplot(data=trainset, aes(x=Species, y=Sepal.Length)) +
     geom_boxplot(aes(fill=Species)) + 
     ylab("Sepal Length") +
     ggtitle("Iris Boxplot") +
-    stat_summary(fun.y=mean, geom="point", shape=5, size=4) 
+    stat_summary(fun=mean, geom="point", shape=5, size=4) 
 print(box)
 ```
 
@@ -147,42 +183,53 @@ face <- ggplot(data=trainset, aes(Sepal.Length, y=Sepal.Width, color=Species))+
 print(face)
 ```
 
--Machine Learning Models!-
-  Finally we're ready to fit our dataset to some models! We'll be building a few models and use the 'trainset' to try and narrow down which one is the best model for predicting the 'testset,' and then we'll try to measure how it will preform in the real world.
-  
-  Decision Tree Classifier
-  This kind of model classifies observations by sorting them down the 'tree' from the root node to the leaf node, which provides the classification for the observation. Each node specifies a test on a particular attribute and each branch from that node represents one of the possible values for that test.
+**-Machine Learning Models!-**
+
+Finally, we're ready to fit our dataset to some models! We'll be building a few models and use the 'trainset' to try and narrow down which one is the best model for predicting the 'testset,' and then we'll try to measure how it will preform in the real world.
+
+*\~Decision Tree Classifier\~*
+
+This kind of model classifies observations by sorting them down the 'tree' from the root node to the leaf node, which provides the classification for the observation. Each node specifies a test on a particular attribute and each branch from that node represents one of the possible values for that test.
+
 ```{r}
-tree <- rpart(yesno ~., data = trainset)
+#fits model
+model.rpart <- rpart(Species~.,data=trainset,method = 'class')
+
+#prints model
+print(model.rpart)
 ```
 
 ```{r}
-plot(rpart$finalModel)
-text(rpart$finalModel)
+
+#plots model
+rpart.plot(model.rpart)
 ```
 
 ```{r}
 #predictions on 'trainset'
-pred<-table(predict(object = model.rpart$finalModel,newdata = trainset[,1:4],type="class"))
-pred
+treePred <- predict(model.rpart,newdata=testset[-5],type = 'class')
+treePred
 ```
 
 ```{r}
-#checks accuracy using a confusion matrix by comparing predictions to actual classifications
-confusionMatrix(predict(object = model.rpart$finalModel,newdata = trainset[,1:4],type="class"),trainset$Species)
+#verifies accuracy on 'trainset'
+confusionMatrix(predict(object = model.rpart,newdata = trainset[,1:4],type="class"),trainset$Species)
 ```
 
 ```{r}
 #checks accuracy on 'testset'
-pred_test<-predict(object = model.rpart$finalModel,
+pred_test<-predict(object = model.rpart,
                    newdata = testset[,1:4],
                    type="class")
 confusionMatrix(pred_test,testset$Species)
 ```
 
-  Linear Discriminant Analysis
-  This classifier is most commonly used as a dimensionality reduction technique in the pre-processing step for pattern-classification and machine learning applications. The goal is to project a dataset onto a lower-dimensional space with good class-separability in order avoid overfitting and also reduce computational costs.
+*\~Linear Discriminant Analysis\~*
+
+This classifier is most commonly used as a dimensionality reduction technique in the pre-processing step for pattern-classification and machine learning applications. The goal is to project a dataset onto a lower-dimensional space with good class-separability in order avoid over fitting and also reduce computational costs.
+
 ```{r}
+#set seed for reproduceability
 set.seed(1000)
 
 #fits model
@@ -204,25 +251,37 @@ pred_test<-predict(object = model.lda,newdata = testset[,1:4])
 confusionMatrix(pred_test,testset$Species)
 ```
 
-  Random Forest Algorithm
-  This kind of classifier creates a model that averages the predictions from many other such classification trees. This class of algorithims uses different attributes for growing each tree.
+*\~Random Forest Algorithm\~*
+
+This kind of classifier creates a model that averages the predictions from many other such classification trees. This class of algorithms uses different attributes for growing each tree.
+
 ```{r}
+#fits model
+model.rf <- randomForest(Species~.,data=trainset,ntree=100,proximity=TRUE)
 print(model.rf)
 ```
 
 ```{r}
+#verifies accuracy on 'trainset'
 confusionMatrix(pred,trainset$Species)
 ```
 
 ```{r}
 #verifies accuracy on 'testset'
-pred_test<-predict(object = model.rf$finalModel,newdata = testset[,1:4],type="class")
+pred_test<-predict(object = model.rf,newdata = testset[,1:4],type="class")
 confusionMatrix(pred_test,testset$Species)
 ```
 
-  Gradient Boosting Method
-  This classifier uses a technique called 'boosting' where we still grow decision classification trees, but each successive tree is grown with an intent to correctly classify the missclassified data from the previous tree.
+*\~Gradient Boosting Method\~*
+
+This classifier uses a technique called 'boosting' where we still grow decision classification trees, but each successive tree is grown with an intent to correctly classify the missclassified data from the previous tree.
+
 ```{r}
+#set seed for reproduceability
+set.seed(124)
+
+#fits model
+model.gbm <- train(Species~.,data = trainset,method = "gbm")
 print(model.gbm)
 ```
 
@@ -233,17 +292,19 @@ confusionMatrix(pred,trainset$Species)
 ```
 
 ```{r}
+#verifies accuracy on 'testset'
 confusionMatrix(pred_test,testset$Species)
 ```
 
-  K Means Clustering Model
-  This model is a type of unsurpervised learning that uses clustering. It's an exploratory data analysis technique used for identifying groups in the data, wih aach group containing observations with similar profiles according to specific criteria. Similarity between observations is defined using some inter-observation distance measures including Euclidean and correlation-based distance measures.
+*\~K Means Clustering Model\~*
+
+This model is a type of unsupervised learning that uses clustering. It's an exploratory data analysis technique used for identifying groups in the data, with each group containing observations with similar profiles according to specific criteria. Similarity between observations is defined using some inter-observation distance measures including Euclidean and correlation-based distance measures.
+
 ```{r}
 #sets seed to ensure reproduceability
 set.seed(20)
-```
 
-```{r}
+#fits model
 irisCluster <- kmeans(iris[, 1:4], centers = 3, nstart = 20)
 irisCluster
 ```
@@ -254,18 +315,7 @@ table(irisCluster$cluster, iris$Species)
 ```
 
 ```{r}
+#plots model
 plot(iris[c("Sepal.Length", "Sepal.Width")], col=irisCluster$cluster)
 points(irisCluster$centers[,c("Sepal.Length", "Sepal.Width")], col=1:3, pch=8, cex=2)
 ```
-
-Summarizing Accuracy
-```{r}
-#summarizes accuracy of models
-results <- resamples(list(TREE=model.rpart, RandomForest=model.rf, GBM=model.gbm, LDA=model.lda))
-summary(results)
-```
-
-```{r}
-dotplot(results)
-```
-

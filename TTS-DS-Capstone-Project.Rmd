@@ -3,8 +3,6 @@ title: "Iris Project"
 author: "Abigail Loy"
 date: "October 14, 2021"
 output:
-  html_document:
-    df_print: paged
   word_document: default
 ---
 
